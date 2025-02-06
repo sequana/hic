@@ -1,0 +1,7 @@
+bwa
+chromap
+pairtools
+qc3c
+fastp
+fastqc
+seqkit

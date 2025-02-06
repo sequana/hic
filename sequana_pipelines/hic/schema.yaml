@@ -1,0 +1,147 @@
+# Schema validator for the Hi-C
+# author: Thomas Cokelaer
+
+type: map
+mapping:
+    "sequana_wrappers":
+        type: str
+        required: False
+    "input_directory":
+        type: str
+        required: True
+    "input_readtag":
+        type: str
+        required: False
+    "input_pattern":
+        type: str
+        required: True
+    "general":
+        type: map
+        mapping:
+            "mapper":
+                type: str
+                required: True
+                enum: ["bwa", "bwa_split", "chromap"]
+            "reference_file":
+                type: str
+                required: True
+    "apptainers":
+        type: any
+       
+    "fastp":
+      type: map
+      mapping:
+        "options":
+            type: str
+        "minimum_length":
+            required: True
+            type: int
+        "adapters":
+            type: str
+            required: False
+        "quality":
+            type: int
+            range: {max: 40, min: 0}
+            required: False
+        "threads":
+            type: int
+            required: True
+            range: { min: 1 }
+        "disable_adapter_trimming":
+            type: bool
+        "disable_quality_filtering":
+            type: bool
+        "resources":
+            type: any
+            required: true
+
+    "bwa_index":
+        type: map
+        mapping:
+            "options":
+                type: str
+                required: False
+            "threads":
+                type: str
+                required: False
+            "resources":
+                type: str
+                required: False
+    "bwa":
+        type: map
+        mapping:
+            "index_algorithm":
+                type: str
+                required: False
+            "options":
+                type: str
+                required: False
+            "threads":
+                type: str
+                required: False
+            "tmp_directory":
+                type: str
+                required: False
+            "resources":
+                type: str
+                required: False
+    "bwa_split":
+        type: map
+        mapping:
+            "nreads":
+                type: str
+                required: False
+            "index_algorithm":
+                type: str
+                required: False
+            "options":
+                type: str
+                required: False
+            "threads":
+                type: str
+                required: False
+            "tmp_directory":
+                type: str
+                required: False
+            "resources":
+                type: str
+                required: False
+    "chromap":
+        type: map
+        mapping:
+            "threads":
+                type: str
+                required: False
+            "resources":
+                type: str
+                required: False
+    "fastqc":
+        type: map
+        mapping:
+            "options":
+                type: str
+                required: False
+            "threads":
+                type: str
+                required: False
+            "resources":
+                type: str
+                required: False
+    "multiqc":
+        type: map
+        mapping:
+            "options":
+                type: str
+                required: False
+            "modules":
+                type: str
+                required: False
+            "input_directory":
+                type: str
+                required: False
+            "config_file":
+                type: str
+                required: False
+            "resources":
+                type: str
+                required: False

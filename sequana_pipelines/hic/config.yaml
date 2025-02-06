@@ -1,0 +1,173 @@
+# ============================================================================
+# Config file for Hi-C
+# ==========================================[ Sections for the users ]========
+#
+# One of input_directory, input_pattern and input_samples must be provided
+# If input_directory provided, use it otherwise if input_pattern provided,
+# use it, otherwise use input_samples.
+# ============================================================================
+sequana_wrappers: v24.1.14
+
+
+input_directory: /home/cokelaer/Work/1_Projects/AssemblyLeishmania/PMyler_HiC/fastq/
+input_readtag: _R[12].
+input_pattern: "JM*gz"
+
+################################################################################
+# extra_prefixes_to_strip
+#
+# In most cases, the input_directory and input_pattern (and input_read_tag for paired analysis)
+# allows us to retrieve unique sample names. We automatically removed common prefixes for you.
+#
+# Sometimes, some prefixes are not common to all samples but still need to be removed
+# to get unique sample names or better output. You can provide extra prefixes to be removed
+# by uncommenting and filling the field extra_prefixes_to_strip.
+#
+# For instance, if you have files called prefix.mess.A.fastq.gz and prefix.B.fastq.gz
+# 'prefix.' will be removed automatically because it is common, but not 'mess'. 
+# use thoses prefixes in the left to right order ['prefix', 'mess'] or ['prefix.mess']
+#
+# extra_prefixes_to_strip: []
+
+
+################################################################################
+# sample_pattern
+#
+# You may have trailing words that are in sample names but not wanted. Consider
+# the filename A_mess.fastq.gz, you can get rid of _mess if it appears in all 
+# samples using a pattern as follows '{sample}_mess.fastq.gz
+#
+# uncomment and fill to use this option. Be aware that prefixes are not removed
+# if you use sample_pattern
+#
+# sample_pattern: '{sample}_mess.fastq.gz'
+
+
+##################################################################################
+#
+#
+# aligner_choice = [bwa, chromap]
+#
+general:
+    mapper: bwa_split
+    reference_file: /home/cokelaer/Work/1_Projects/AssemblyLeishmania/PMyler_HiC/Ld1S.fa
+
+
+apptainers:
+    bwa: https://zenodo.org/record/7341710/files/sequana_tools_0.14.5.img
+    graphviz: https://zenodo.org/record/7928262/files/graphviz_7.0.5.img
+    multiqc: https://zenodo.org/record/10205070/files/multiqc_1.16.0.img
+    samtools: https://zenodo.org/record/7437898/files/samtools_1.16.1.img
+    chromap: https://zenodo.org/record/14721866/files/chromap_0.2.7.img
+    pairtools: https://zenodo.org/record/14746699/files/pairtools_1.1.2.img
+    qc3c: https://zenodo.org/record/14746667/files/qc3c_0.5.0.img
+    fastqc: "https://zenodo.org/record/7015004/files/fastqc_0.11.9-py3.img"
+    seqkit: https://zenodo.org/record/7821924/files/seqkit_2.4.0.img
+    fastp: "https://zenodo.org/record/7319782/files/fastp_0.23.2.img"
+
+
+#############################################################################
+# -Q should disable the quality filter
+#
+# Quality filtering only limits the N base number (-n, --n_base_limit) 
+# meaning if 5 Ns are found, the read is discarded, 
+# -q is the quality value se to Q15 to be qualified; If more than 40% of bases
+# are unqualified, the read is discarded.
+# You can also filter reads by average quality score using -e QUAL_score
+#
+# minimum length is set to 15 by default
+#
+# Adapter trimming is set by default. Can be disable with -A
+# For adapters, this is automatic but you can be specific using 
+# --adapter_sequence for read1, and --adapter_sequence_r2 for read2.
+# The --cut_tail moves a sliding window from tail (3') to front, drop the bases 
+# in the window if its mean quality is below cut_mean_quality, stop otherwise. 
+# Use cut_tail_window_size to set the widnow size (default 4)), and 
+# cut_tail_mean_quality to set the mean quality threshold (default 20)
+# Other useful options: --disable_adapter_trimming and --disable_quality_filtering.
+# or -n 5 (minimum number of Ns required to discard a read)
+fastp:
+    options: ' --cut_tail '
+    minimum_length: 20
+    adapters: ''
+    quality: 15
+    threads: 4
+    disable_adapter_trimming: false
+    disable_quality_filtering: false
+    resources:
+        mem: 8G
+
+
+
+#############################################################################
+# BWA MEM indexing
+#
+bwa_index:
+    options: ''
+    threads: 4
+    resources:
+        mem: 8G
+
+###############################################################################
+# qc3c
+#
+# From qc3c website, recommended to use -5SP. SP stop bwa mem from
+# attemppting mate rescue and pairing, while -5 cause the lowest-coordinate part
+# of split alignments to be reported as primary; This last option simplifies 
+# the logic in programs analysing Hi-C read-mappings (such as bin3C).
+#
+#
+
+bwa:
+    index_algorithm: is
+    options: -5SP
+    threads: 4
+    tmp_directory: ./tmp
+    resources:
+        mem: 8G
+
+bwa_split:
+    nreads: 100000
+    index_algorithm: is
+    options: -T 30 -M
+    threads: 4
+    tmp_directory: ./tmp
+    resources:
+        mem: 8G
+
+chromap:
+    threads: 4
+    resources:
+        mem: 8G
+
+
+#################################################################
+# FastQC section
+#
+# :Parameters:
+#
+# - options: string with any valid FastQC options
+#
+fastqc:
+    options: --nogroup
+    threads: 4
+    resources:
+        mem: 4G
+
+
+#############################################################################
+##   MultiQC aggregates results from bioinformatics analyses across many
+##   samples into a single report.
+##
+## :Parameters:
+##
+## - options: any options recognised by multiqc
+## - config_file: by default, we use sequana RNA-seq multiqc_config file.
+##       If you want your own multiqc, fill this entry
+multiqc:
+    options: -p -f
+    modules: ''
+    input_directory: .
+    config_file: #multiqc_config.yaml
+    resources:
+        mem: 8G
