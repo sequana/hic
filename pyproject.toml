@@ -1,12 +1,12 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0"]
 build-backend = "poetry.core.masonry.api"
 
-[pyproject]
+[project]
 name = "sequana-hic"
 version = "0.0.1"
 description = "Hi-C analysis, snakemake, sequana, container, reproducibility"
-authors = ["Sequana Team"]
+authors = [{name="Sequana Team", email="thomas.cokelaer@pasteur.fr"}]
 license = "BSD-3"
 repository = "https://github.com/sequana/hic"
 readme = "README.rst"
@@ -32,15 +32,15 @@ packages = [
     {include = "sequana_pipelines"}
 ]
 
+requires-python = ">=3.9,<4.0"
+dependencies = [
+    "sequana >=0.17.0",
+    "sequana_pipetools >=1.0.0",
+    "click-completion >=0.5.2",
+    "cooler >=0.10.3"
+]
 
-[tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-sequana = ">=0.17.0"
-sequana_pipetools = ">=1.0.0"
-click-completion = "^0.5.2"
-cooler = "^0.10.3"
-
-[tool.poetry.scripts]
+[projects.scripts]
 sequana_hic = "sequana_pipelines.hic.main:main"
 
 
