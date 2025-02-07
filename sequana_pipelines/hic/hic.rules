@@ -310,6 +310,8 @@ elif config["general"]["mapper"] == "chromap":
             summary_pairs="{sample}/chromap/{sample}.summary.txt",
         container:
             config["apptainers"]["chromap"]
+        resources:
+            **config['chromap']['resources']
         threads: 
             config["chromap"]["threads"]
         log:
@@ -325,6 +327,8 @@ elif config["general"]["mapper"] == "chromap":
             sam="{sample}/chromap/{sample}.sam",
         output:
             bam="{sample}/chromap/{sample}.sorted.byname.bam",
+        container:
+            config["apptainers"]["samtools"]
         shell:
             """
             samtools sort -n {input.sam} > {output.bam}
@@ -498,9 +502,17 @@ rule cooler_cload:
 expected_output += expand("{sample}/cooler/{sample}.mcool", sample=manager.samples)
 
 
+
+def get_hic_qc_input(wildcards):
+    if config['general']['mapper'] == 'chromap':
+        return "{sample}/chromap/{sample}.sorted.byname.bam"
+    else:
+        return "{sample}/bwa/{sample}.sorted.byname.bam"
+
+
 rule hic_qc:
     input:
-        bam="{sample}/bwa/{sample}.sorted.byname.bam"
+        bam=get_hic_qc_input
     output:
         html="{sample}/hic_qc/{sample}_qc_report.html"
     shell:

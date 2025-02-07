@@ -19,11 +19,12 @@
 
 
 
+
 This is the **Hi-C** pipeline from the `Sequana <https://sequana.readthedocs.org>`_ project
 
 :Overview: Hi-C pipeline to capture 3D chromatim interactions in a genome
 :Input: FastQ files and reference genome
-:Output: TODO
+:Output: cooler files and dreamy plots
 :Status: draft
 :Citation: Cokelaer et al, (2017), ‘Sequana’: a Set of Snakemake NGS pipelines, Journal of Open Source Software, 2(16), 352, JOSS DOI doi:10.21105/joss.00352
 
@@ -88,7 +89,12 @@ Requirements
 
 This pipelines requires the following executable(s):
 
-- TODO
+- fastqc
+- bwa
+- chromap (implemented but still WIP so not really required)
+- pairtools
+- samtools
+
 
 .. image:: https://raw.githubusercontent.com/sequana/sequana_hic/main/sequana_pipelines/hic/dag.png
 

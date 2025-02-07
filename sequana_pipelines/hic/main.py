@@ -40,7 +40,7 @@ help = init_click(NAME, groups={
     "--aligner-choice",
     "mapper",
     default="bwa",
-    type=click.Choice(["bwa", "bwa_split", "minimap2", "bowtie2"]),
+    type=click.Choice(["bwa", "bwa_split", "chromap"]),
     help="""Choose one of the valid mapper. bwa_split is experimental. it first split the fastq files in chunks of 1Mreads,
 aligns the reads with bwa and merge back the sub BAM files. Should be equivalent to using bwa but could be used on
 cluster to speed up analysis.""",
