@@ -48,49 +48,58 @@ manager = sm.PipelineManager("hic", config)
 
 expected_output = []
 
-if config['general']['mapper'] == 'chromap':
+if config["general"]["mapper"] == "chromap":
+
     rule pipeline:
-        input: expand("{sample}/chromap/{sample}.aln.pairs", sample=manager.samples),
-            expand("{sample}/qc3c/report.qc3C.html", sample=manager.samples),
-             "multiqc/multiqc_report.html",
-             ".sequana/rulegraph.svg",
+        input:
+            expand("{sample}/chromap/{sample}.aln.pairs", sample=manager.samples),
+            "multiqc/multiqc_report.html",
+            ".sequana/rulegraph.svg",
+            expand("{sample}/cooler/{sample}.contact.5000.png", sample=manager.samples),
+            expand("{sample}/hic_qc/{sample}_qc_report.html", sample=manager.samples)
+
 else:
+
     rule pipeline:
-        input: #expand("{sample}/bwa/{sample}.sorted.bam", sample=manager.samples),
-            expand("{sample}/qc3c/report.qc3C.html", sample=manager.samples),
-             "multiqc/multiqc_report.html",
-             ".sequana/rulegraph.svg",
-            expand("{sample}/cooler/{sample}.contact.5000.png", sample=manager.samples)
+        input:  #expand("{sample}/bwa/{sample}.sorted.bam", sample=manager.samples),
+            "multiqc/multiqc_report.html",
+            ".sequana/rulegraph.svg",
+            expand("{sample}/cooler/{sample}.contact.5000.png", sample=manager.samples),
+            expand("{sample}/hic_qc/{sample}_qc_report.html", sample=manager.samples)
 
 
-reference_file = config['general']['reference_file']
+reference_file = config["general"]["reference_file"]
 
 
 rule copy_reference:
-    input: config['general']['reference_file']
-    output: "reference/genome.fasta"
+    input:
+        config["general"]["reference_file"],
+    output:
+        "reference/genome.fasta",
     shell:
         """
         cp {input} {output}
         """
 
+
 # =========================================================== FASTQC on input data set
 #
 rule fastqc:
     input:
-        manager.getrawdata()
+        manager.getrawdata(),
     output:
-        done = "{sample}/fastqc/fastqc.done"
+        done="{sample}/fastqc/fastqc.done",
     params:
-        options= config["fastqc"]["options"],
-        working_directory= "{sample}/fastqc/"
+        options=config["fastqc"]["options"],
+        working_directory="{sample}/fastqc/",
     threads: config["fastqc"]["threads"]
     container:
-       config['apptainers']['fastqc']
-    log: 
-       "{sample}/fastqc/fastqc.log"
+        config["apptainers"]["fastqc"]
+    log:
+        "{sample}/fastqc/fastqc.log",
     wrapper:
         f"{manager.wrappers}/wrappers/fastqc"
+
 
 expected_output.extend(expand("{sample}/fastqc/fastqc.done", sample=manager.samples))
 
@@ -111,85 +120,94 @@ if 1 == 0:
 
     rule fastp:
         input:
-            sample=manager.getrawdata()
+            sample=manager.getrawdata(),
         output:
             trimmed=__clean_fastq__output,
             html="{sample}/fastp/fastp_{sample}.html",
-            json="{sample}/fastp/fastp_{sample}.json", # must be named fastp
+            json="{sample}/fastp/fastp_{sample}.json",  # must be named fastp
         log:
-            "logs/fastp/{sample}.log"
+            "logs/fastp/{sample}.log",
         params:
-            options=config['fastp']["options"],
-            adapters=config["fastp"]["adapters"]
-        threads:
-            config["fastp"].get("threads", 4)
+            options=config["fastp"]["options"],
+            adapters=config["fastp"]["adapters"],
+        threads: config["fastp"].get("threads", 4)
         resources:
-            **config['fastp']['resources']
+            **config["fastp"]["resources"],
         container:
-            config['apptainers']['fastp']
+            config["apptainers"]["fastp"]
         wrapper:
             f"{manager.wrappers}/wrappers/fastp"
 
 
-
-
-
-if config['general']['mapper'] in ["bwa", "bwa_split"]:
+if config["general"]["mapper"] in ["bwa", "bwa_split"]:
     reference = config["general"]["reference_file"]
 
     rule bwa_index:
         input:
-            reference="reference/genome.fasta"
+            reference="reference/genome.fasta",
         output:
             bwa_bwt="reference/genome.fasta.bwt",
-            fai="reference/genome.fasta.fai"
+            fai="reference/genome.fasta.fai",
         log:
-            "reference/build.log"
+            "reference/build.log",
         params:
             options="",
-            index_algorithm=config['bwa']['index_algorithm']
+            index_algorithm=config["bwa"]["index_algorithm"],
         threads: 2
         resources:
-            **config["bwa_index"]["resources"]
+            **config["bwa_index"]["resources"],
         container:
-            config['apptainers']['bwa']
+            config["apptainers"]["bwa"]
         wrapper:
             f"{manager.wrappers}/wrappers/bwa/build"
 
 
-
 # now switch between aligners
-if config['general']['mapper'] == "bwa":
+if config["general"]["mapper"] == "bwa":
+
     rule bwa:
         input:
             fastq=manager.getrawdata(),
             bwa_bwt="reference/genome.fasta.bwt",
             fai="reference/genome.fasta.fai",
-            reference="reference/genome.fasta"
+            reference="reference/genome.fasta",
         output:
-            sorted="{sample}/bwa/{sample}.sorted.bam"
+            sorted="{sample}/bwa/{sample}.sorted.bam",
         log:
-            "{sample}/bwa/{sample}.log"
+            "{sample}/bwa/{sample}.log",
         params:
             options=config["bwa"]["options"] + "",
-            tmp_directory=config["bwa"]["tmp_directory"]
+            tmp_directory=config["bwa"]["tmp_directory"],
         threads: 2
         resources:
-            **config["bwa"]["resources"]
+            **config["bwa"]["resources"],
         container:
-            config['apptainers']['bwa']
+            config["apptainers"]["bwa"]
         wrapper:
             f"{manager.wrappers}/wrappers/bwa/align"
 
-elif config['general']['mapper'] == 'bwa_split':
+    rule sort_by_name:
+        input:
+            sorted=rules.bwa.output.sorted
+        output:
+            bam="{sample}/bwa/{sample}.sorted.byname.bam",
+        container:
+            config["apptainers"]["samtools"]
+        shell:
+            """
+            samtools sort -n {input.sorted} > {output.bam}
+            """
+elif config["general"]["mapper"] == "bwa_split":
 
     checkpoint split_fasta:
-        input: manager.getrawdata()
-        output: directory("{sample}/split/")
+        input:
+            manager.getrawdata(),
+        output:
+            directory("{sample}/split/"),
         params:
-            nreads=config['bwa_split']['nreads']
+            nreads=config["bwa_split"]["nreads"],
         container:
-            config['apptainers']['seqkit']
+            config["apptainers"]["seqkit"]
         shell:
             """
             seqkit split2 --by-size {params.nreads} -O {wildcards.sample}/split -1 {input[0]} -2 {input[1]}
@@ -198,9 +216,9 @@ elif config['general']['mapper'] == 'bwa_split':
     def get_bwa_input():
         if manager.paired is True:
             return (
-                    "{sample}/split/{sample}_R1.{splitid}.fastq.gz",
-                    "{sample}/split/{sample}_R2.{splitid}.fastq.gz"
-                    )
+                "{sample}/split/{sample}_R1.{splitid}.fastq.gz",
+                "{sample}/split/{sample}_R2.{splitid}.fastq.gz",
+            )
         else:
             return "{sample}/split/{sample}_R1.{splitid}.fastq.gz"
 
@@ -210,37 +228,44 @@ elif config['general']['mapper'] == 'bwa_split':
             fastq=get_bwa_input(),
             bwa_bwt="reference/genome.fasta.bwt",
             fai="reference/genome.fasta.fai",
-            reference="reference/genome.fasta"
+            reference="reference/genome.fasta",
         output:
-            sorted=temp("{sample}/split/{sample}.sorted.{splitid}.bam")
+            sorted=temp("{sample}/split/{sample}.sorted.{splitid}.bam"),
         log:
-            "{sample}/split/{sample}.{splitid}.log"
+            "{sample}/split/{sample}.{splitid}.log",
         params:
             options=config["bwa"]["options"],
-            tmp_directory=config["bwa"]["tmp_directory"]
+            tmp_directory=config["bwa"]["tmp_directory"],
         threads: 2
         resources:
-            **config["bwa"]["resources"]
+            **config["bwa"]["resources"],
         container:
-            config['apptainers']['bwa']
+            config["apptainers"]["bwa"]
         wrapper:
             f"{manager.wrappers}/wrappers/bwa/align"
 
     def aggregate_bwa(wildcards):
         checkpoint_output = checkpoints.split_fasta.get(**wildcards).output[0]
-        splitter = glob.glob(checkpoint_output+ "/*.gz")
-        splitter = [x.split('.')[-3] for x in splitter if x.endswith(".gz") and "_R1_" in x or '_R1.']
-        filenames = expand("{{sample}}/split/{{sample}}.sorted.{splitid}.bam", splitid=splitter)
+        splitter = glob.glob(checkpoint_output + "/*.gz")
+        splitter = [
+            x.split(".")[-3]
+            for x in splitter
+            if x.endswith(".gz") and "_R1_" in x or "_R1."
+        ]
+        filenames = expand(
+            "{{sample}}/split/{{sample}}.sorted.{splitid}.bam", splitid=splitter
+        )
         # prevent R1 and R2 to be provided at same time.
-        filenames = list(set(filenames)) 
+        filenames = list(set(filenames))
         return filenames
 
     rule bwa_merge:
-        input: aggregate_bwa
+        input:
+            aggregate_bwa,
         output:
-            sorted="{sample}/bwa/{sample}.sorted.bam"
+            sorted="{sample}/bwa/{sample}.sorted.bam",
         container:
-            config['apptainers']['samtools']
+            config["apptainers"]["samtools"]
         shell:
             """
             samtools merge {output} {input}
@@ -248,24 +273,27 @@ elif config['general']['mapper'] == 'bwa_split':
 
     rule sort_by_name:
         input:
-            sorted="{sample}/bwa/{sample}.sorted.bam"
+            sorted=rules.bwa_merge.output.sorted
         output:
             bam="{sample}/bwa/{sample}.sorted.byname.bam",
+        container:
+            config["apptainers"]["samtools"]
         shell:
             """
             samtools sort -n {input.sorted} > {output.bam}
             """
 
-elif config['general']['mapper'] == 'chromap':
+elif config["general"]["mapper"] == "chromap":
+
     rule chromap_index:
         input:
-            reference="reference/genome.fasta"
+            reference="reference/genome.fasta",
         output:
-            index="reference/index"
+            index="reference/index",
         container:
-            config['apptainers']['chromap']
-        threads:
-            config['chromap']['threads']
+            config["apptainers"]["chromap"]
+        threads: 
+            config["chromap"]["threads"]
         shell:
             """
             chromap -i -r {input.reference} -o {output.index} -t {threads}
@@ -275,17 +303,17 @@ elif config['general']['mapper'] == 'chromap':
         input:
             fastq=manager.getrawdata(),
             index="reference/index",
-            reference="reference/genome.fasta"
+            reference="reference/genome.fasta",
         output:
             aln="{sample}/chromap/{sample}.aln.pairs",
             sam="{sample}/chromap/{sample}.sam",
             summary_pairs="{sample}/chromap/{sample}.summary.txt",
         container:
-            config['apptainers']['chromap']
-        threads:
-            config['chromap']['threads']
+            config["apptainers"]["chromap"]
+        threads: 
+            config["chromap"]["threads"]
         log:
-            "{sample}/chromap/log.txt"
+            "{sample}/chromap/log.txt",
         shell:
             """
             chromap --preset hic -x {input.index} -r {input.reference} -1 {input[0]} -2 {input[1]}  --pairs -o {output.aln} -t {threads} --summary {output.summary_pairs} > {log}
@@ -297,7 +325,6 @@ elif config['general']['mapper'] == 'chromap':
             sam="{sample}/chromap/{sample}.sam",
         output:
             bam="{sample}/chromap/{sample}.sorted.byname.bam",
-
         shell:
             """
             samtools sort -n {input.sam} > {output.bam}
@@ -309,24 +336,23 @@ def get_input_bam_files(wildcards):
     if config["general"]["mapper"] == "chromap":
         return "{sample}/chromap/{sample}.sorted.byname.bam"
     else:
-        return "{sample}/bwa/{sample}.sorted.byname.bam",
-        
+        return ("{sample}/bwa/{sample}.sorted.byname.bam",)
 
 
 # QC with qc3c
 rule qc3c:
     input:
         bam=get_input_bam_files,
-        reference="reference/genome.fasta"
+        reference="reference/genome.fasta",
     output:
         html="{sample}/qc3c/report.qc3C.html",
         json="{sample}/report.qc3C.json",
-        log="{sample}/qc3c/{sample}.log"
+        log="{sample}/qc3c/{sample}.log",
     params:
-        sample_rate=0.1, # according to the author it is enough.
-        mapq=30
-    #container:
-    #    config['apptainers']['qc3c']
+        sample_rate=0.1,  # according to the author it is enough.
+        mapq=30,
+    container:
+        config['apptainers']['qc3c']
     threads:
         4
     shell:
@@ -336,202 +362,226 @@ rule qc3c:
         mv {wildcards.sample}/qc3c/report.qc3C.json {output.json}
         mv {wildcards.sample}/qc3c/qc3C.log {output.log}
         """
+
+
 expected_output += expand("{sample}/qc3c/report.qc3C.html", sample=manager.samples)
 
 
 rule chrom_size:
     input:
-        reference="reference/genome.fasta"
+        reference="reference/genome.fasta",
     output:
-        chromsize="reference/chromsize.txt"
+        chromsize="reference/chromsize.txt",
     shell:
         """
         sequana fasta {input.reference} --to-chrom-size --output {output.chromsize}
         """
 
 
-# this convert a SAM/BAM into pairs but gives large files compared to 
+# this convert a SAM/BAM into pairs but gives large files compared to
 # chromap. does chrompa already performs sanity checks ?
-rule pairtools_parse:
+rule pairtools:
     input:
         bam=get_input_bam_files,
-        chrom_size=rules.chrom_size.output.chromsize
+        chrom_size=rules.chrom_size.output.chromsize,
     output:
-        parse="{sample}/pairtools/{sample}.parse.pairs"
-    #container:
-    #    config['apptainers']['pairtools']
+        sort="{sample}/pairtools/{sample}.sort.pairs",
+    container:
+        config["apptainers"]["pairtools"]
+    params:
+        # walk_policy could be mask, 5any, 5unique, 3any|3unique|all
+        walk_policy=config["pairtools"]["walk_policy"],
+    threads: config["pairtools"]["threads"]
+    resources:
+        mem=config["pairtools"]["resources"]["mem"],
     shell:
         """
-        pairtools parse {input.bam} -c {input.chrom_size}  -o {output.parse}
+        # pairtools parse generate 1 large file.  pairtools sort as well. Better to pipe them to get
+        # only one file. pairs number is identical of course. same content but sorted so statistics 
+        # would be the same
+        pairtools parse --nproc-in {threads} --nproc-out {threads} {input.bam} -c {input.chrom_size} --walks-policy {params.walk_policy} |  \
+            pairtools sort --nproc {threads} --memory {resources.mem} -o {output.sort} 
         """
 
-rule pairtools_sort:
-    input:
-        data=rules.pairtools_parse.output.parse,
-    output:
-        sort="{sample}/pairtools/{sample}.sort.pairs"
-    container:
-        config['apptainers']['pairtools']
-    threads:
-        4
-    shell:
-        """
-        pairtools sort --nproc {threads} --memory 4G -o {output.sort} {input.data}
-        """
 
-rule pairtools_sort_stats:
+rule pairtools_stats:
     input:
-        data=rules.pairtools_sort.output.sort,
+        data=rules.pairtools.output.sort,
     output:
-        stats="{sample}/pairtools/{sample}.pairtools.sort.stats.txt"
+        stats="{sample}/pairtools/{sample}.pairtools.sort.stats.txt",
     container:
-        config['apptainers']['pairtools']
+        config["apptainers"]["pairtools"]
     shell:
         """
         pairtools stats {input.data} > {output.stats}
         """
 
+
 rule pairtools_dedup:
     input:
-        data=rules.pairtools_sort.output.sort,
+        data=rules.pairtools.output.sort,
     output:
         pairsam="{sample}/pairtools/{sample}.dedup.pairsam",
-        stats="{sample}/pairtools/{sample}.dedup.stats"
+        stats="{sample}/pairtools/{sample}.dedup.stats",
     container:
-        config['apptainers']['pairtools']
+        config["apptainers"]["pairtools"]
     shell:
         """
         pairtools dedup -o {output.pairsam} {input.data} --output-stats {output.stats}
         """
 
+
 rule pairtools_dedup_stats:
     input:
         data=rules.pairtools_dedup.output.pairsam,
     output:
-        stats="{sample}/pairtools/{sample}.pairtools.dedup.stats.txt"
+        stats="{sample}/pairtools/{sample}.pairtools.dedup.stats.txt",
     container:
-        config['apptainers']['pairtools']
+        config["apptainers"]["pairtools"]
     shell:
         """
         pairtools stats {input.data} > {output.stats}
         """
 
-expected_output += expand("{sample}/pairtools/{sample}.pairtools.dedup.stats.txt", sample=manager.samples)
-expected_output += expand("{sample}/pairtools/{sample}.pairtools.sort.stats.txt", sample=manager.samples)
+
+expected_output += expand(
+    "{sample}/pairtools/{sample}.pairtools.dedup.stats.txt", sample=manager.samples
+)
+expected_output += expand(
+    "{sample}/pairtools/{sample}.pairtools.sort.stats.txt", sample=manager.samples
+)
+
 
 rule pairtools_split:
     input:
-        pairsam=rules.pairtools_dedup.output.pairsam
+        pairsam=rules.pairtools_dedup.output.pairsam,
     output:
         pairs="{sample}/pairtools/{sample}.nodups.pairs",
-        sam="{sample}/pairtools/{sample}.nodups.sam"
+        sam="{sample}/pairtools/{sample}.nodups.sam",
     container:
-        config['apptainers']['pairtools']
+        config["apptainers"]["pairtools"]
     shell:
         """
         pairtools split {input.pairsam} --output-pairs {output.pairs} --output-sam {output.sam}
         """
 
 
-expected_output += expand("{sample}/pairtools/{sample}.nodups.pairs", sample=manager.samples)
+expected_output += expand(
+    "{sample}/pairtools/{sample}.nodups.pairs", sample=manager.samples
+)
 
 
 rule cooler_cload:
     input:
         reference="reference/genome.fasta",
         data=rules.pairtools_split.output.pairs,
-        chrom_size=rules.chrom_size.output.chromsize
+        chrom_size=rules.chrom_size.output.chromsize,
     output:
         cool="{sample}/cooler/data",
-        mcool="{sample}/cooler/{sample}.mcool"
+        mcool="{sample}/cooler/{sample}.mcool",
     log:
-        "{sample}/cooler/{sample}.log"
+        "{sample}/cooler/{sample}.log",
     params:
-        binsize=100
+        binsize=100,
     shell:
         """
-        # what are the arguments -c1/-p1/-c2/-p2 not clear from the doc but looks
-        #like values should be 2, 3, 4, 5 ? why ?
+        # The pairtools output has columns corresponding to chr1, chr2, and are hard-coded here below.
+        # for options -c1/-p1/-c2/-p2 
         #
         mkdir -p {wildcards.sample}/cooler
         cooler cload pairs  -c1 2 -p1 3 -c2 4 -p2 5 --assembly {input.reference} {input.chrom_size}:{params.binsize} {input.data} {output.cool} > {log}
 
-        cooler zoomify --resolutions 300,400,500,1000,2000,5000,10000,20000,50000,100000,1000000  --out {output.mcool} --balance {output.cool}
+        cooler zoomify --resolutions 300,400,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000,2000000,5000000  --out {output.mcool} --balance {output.cool}
         """
+
 
 expected_output += expand("{sample}/cooler/{sample}.mcool", sample=manager.samples)
 
 
+rule hic_qc:
+    input:
+        bam="{sample}/bwa/{sample}.sorted.byname.bam"
+    output:
+        html="{sample}/hic_qc/{sample}_qc_report.html"
+    shell:
+        """
+        # max of 1,000,000 reads
+        python .sequana/hic_qc.py -b {input.bam} --outfile_prefix {wildcards.sample}/hic_qc/{wildcards.sample} -n 1000000
+        cp .sequana/hic_qc_style.css {wildcards.sample}/hic_qc/style.css
+        """
+
+
+
 rule viz:
     input:
-        "{sample}/cooler/{sample}.mcool"
+        "{sample}/cooler/{sample}.mcool",
     output:
         png="{sample}/cooler/{sample}.contact.5000.png",
     run:
         import cooler
-        c = cooler.Cooler(f'{input}::/resolutions/5000')
+
+        c = cooler.Cooler(f"{input}::/resolutions/5000")
         mat = c.matrix(balance=True)
         from pylab import savefig, matshow, log10
+
         N = c.shape[0]
-        matshow(log10(mat[0:N,0:N]),  cmap='YlOrRd')
+        matshow(log10(mat[0:N, 0:N]), cmap="YlOrRd")
         savefig(output.png, dpi=200)
 
+
 # ========================================================== multiqc
-multiqc_params_options = config['multiqc']['options']
+multiqc_params_options = config["multiqc"]["options"]
 if manager.config.multiqc.config_file:
     multiqc_params_options += f" -c {manager.config.multiqc.config_file}"
 
 
-
-
 rule multiqc:
     input:
-        expected_output
+        expected_output,
     output:
-       "multiqc/multiqc_report.html"
+        "multiqc/multiqc_report.html",
     params:
         options=multiqc_params_options,
-        input_directory=config['multiqc']['input_directory'],
-        config_file=config['multiqc']['config_file'],
-        modules=config['multiqc']['modules']
+        input_directory=config["multiqc"]["input_directory"],
+        config_file=config["multiqc"]["config_file"],
+        modules=config["multiqc"]["modules"],
     log:
-        "multiqc/multiqc.log"
+        "multiqc/multiqc.log",
     resources:
-        **config['multiqc']['resources']
+        **config["multiqc"]["resources"],
     container:
         config["apptainers"]["multiqc"]
     wrapper:
-       f"{manager.wrappers}/wrappers/multiqc"
-
+        f"{manager.wrappers}/wrappers/multiqc"
 
 
 # ========================================================== rulegraph
 rule rulegraph:
-    input: str(manager.snakefile)
+    input:
+        str(manager.snakefile),
     output:
-        svg = "rulegraph/rulegraph.dot"
+        svg="rulegraph/rulegraph.dot",
     params:
-        mapper = {}, #{"multiqc": "../multiqc/multiqc_report.html"},
-        configname = "config.yaml"
+        mapper={},  #{"multiqc": "../multiqc/multiqc_report.html"},
+        configname="config.yaml",
     wrapper:
         f"{manager.wrappers}/wrappers/rulegraph"
 
 
 rule dot2svg:
     input:
-        "rulegraph/rulegraph.dot"
+        "rulegraph/rulegraph.dot",
     output:
-        ".sequana/rulegraph.svg"
+        ".sequana/rulegraph.svg",
     container:
-        config['apptainers']['graphviz']
+        config["apptainers"]["graphviz"]
     shell:
         """dot -Tsvg {input} -o {output}"""
 
 
-
-
 # Those rules takes a couple of seconds so no need for a cluster
-localrules: rulegraph
+localrules:
+    rulegraph,
 
 
 onsuccess:
@@ -540,6 +590,7 @@ onsuccess:
     from sequana.modules_report.summary import SequanaReport
 
     import colorlog
+
     log = colorlog.getLogger("sequana.hic")
     log.setLevel("INFO")
 
@@ -548,7 +599,21 @@ onsuccess:
     manager.clean_multiqc("multiqc/multiqc_report.html")
 
 
-    html= f"""   <h2>Overview</h2>"""
+    html = f"""   <h2>Overview</h2>
+
+        <p>
+        Please have a look at the <a href="./multiqc/multiqc_report.html">multiQC</a> report to get a feeling of the Hi-C quality of the library.
+        In particular, have a look at the "BAM mode HiC-pro validation section. This plot gives you the percentage of
+        reads mapping to the same contig in the same orientation (FF or RR). For shotgun libraries, this should
+        be ~1%, but for a pure Hi-C library, it could be as high as 50%. This is a primary metric of Hi-C library
+        quality. Not that you can also use the read pairs that map on several contigs (FR and RF)
+
+        Another sanity check is the "BAM mode distribution of fragment separation" plot. It should give you the insert size of the library, which you may know from the experimentalists. You should see a bump/maximum value in your plot. 
+        </p>
+     Please explorer the directory. You should find one directory per sample. Contact matrix files are in e.g. sample/cooler/ directory together with image example (from your data). 
+
+
+        """
     s = SequanaReport(manager.getmetadata(), html)
 
     shell("chmod -R g+w .")

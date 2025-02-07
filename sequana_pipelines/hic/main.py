@@ -84,11 +84,12 @@ def main(**options):
     # finalise the command and save it; copy the snakemake. update the config
     # file and save it.
     manager.teardown()
-
-
-
+    from pathlib import Path
+    path = Path(os.path.dirname(os.path.realpath(manager.module.config)))
     import shutil
-    shutil.copy("collateral", self.workdir / ".sequana")
+    shutil.copy(path / "src"/ "style.css",  manager.workdir / ".sequana/hic_qc_style.css")
+    shutil.copy(path / "src"/ "report_template.md",  manager.workdir / ".sequana/")
+    shutil.copy(path / "src"/ "hic_qc.py",  manager.workdir / ".sequana/")
 
 
 

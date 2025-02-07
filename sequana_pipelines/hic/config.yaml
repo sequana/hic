@@ -9,8 +9,8 @@
 sequana_wrappers: v24.1.14
 
 
-input_directory: /home/cokelaer/Work/1_Projects/AssemblyLeishmania/PMyler_HiC/fastq/
-input_readtag: _R[12].
+input_directory: 
+input_readtag: _R[12]_
 input_pattern: "JM*gz"
 
 ################################################################################
@@ -49,8 +49,8 @@ input_pattern: "JM*gz"
 # aligner_choice = [bwa, chromap]
 #
 general:
-    mapper: bwa_split
-    reference_file: /home/cokelaer/Work/1_Projects/AssemblyLeishmania/PMyler_HiC/Ld1S.fa
+    mapper: bwa
+    reference_file: 
 
 
 apptainers:
@@ -97,6 +97,12 @@ fastp:
     resources:
         mem: 8G
 
+
+pairtools:
+    walk_policy: "5unique"
+    threads: 4
+    resources:
+        mem: 4G
 
 
 #############################################################################
