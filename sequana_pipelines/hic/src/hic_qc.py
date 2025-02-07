@@ -1054,8 +1054,8 @@ class HiCQC(object):
         if quiet:
             options["quiet"] = ""
 
-        template_path = os.path.join(self.paths['script_dir'], "collateral", "HiC_QC_report_template.md")
-        style_path = os.path.join(self.paths['script_dir'], "collateral", "style.css")
+        template_path = os.path.join(self.paths['script_dir'], "report_template.md")
+        style_path = os.path.join(self.paths['script_dir'], "hic_qc_style.css")
 
         if not os.path.exists(template_path):
             raise FileNotFoundError("Can't find markdown template at {}! Exitting...".format(
