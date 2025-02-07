@@ -2,6 +2,7 @@
 requires = ["poetry-core>=2.0"]
 build-backend = "poetry.core.masonry.api"
 
+
 [project]
 name = "sequana-hic"
 version = "0.0.1"
@@ -28,9 +29,8 @@ classifiers = [
         "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-packages = [
-    {include = "sequana_pipelines"}
-]
+
+
 
 requires-python = ">=3.9,<4.0"
 dependencies = [
@@ -39,6 +39,17 @@ dependencies = [
     "click-completion >=0.5.2",
     "cooler >=0.10.3"
 ]
+
+[tool.poetry]
+packages = [
+    { include = "hic" , from = "sequana_pipelines" }
+]
+
+
+#[tool.setuptools.packages.find]
+#where = ["sequana_pipelines/"]
+#include = ["sequana_pipelines.hic"]
+
 
 [projects.scripts]
 sequana_hic = "sequana_pipelines.hic.main:main"
