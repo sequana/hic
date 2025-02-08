@@ -29,9 +29,6 @@ classifiers = [
         "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-
-
-
 requires-python = ">=3.9,<4.0"
 dependencies = [
     "sequana >=0.17.0",
@@ -43,10 +40,12 @@ dependencies = [
 
 [tool.poetry]
 packages = [
-    { include = "hic",  from = "sequana_pipelines" }
+    {include = "sequana_pipelines"}
 ]
 
 
+#[tool.setuptools.packages.find]
+#where = ["sequana_pipelines"]
 
 [project.scripts]
 sequana_hic = "sequana_pipelines.hic.main:main"
