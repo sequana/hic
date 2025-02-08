@@ -37,21 +37,18 @@ dependencies = [
     "sequana >=0.17.0",
     "sequana_pipetools >=1.0.0",
     "click-completion >=0.5.2",
-    "cooler >=0.10.3"
+    "cooler >=0.10.3",
+    "pdfkit (>=1.0.0,<2.0.0)"
 ]
 
 [tool.poetry]
 packages = [
-    { include = "hic" , from = "sequana_pipelines" }
+    { include = "hic",  from = "sequana_pipelines" }
 ]
 
 
-#[tool.setuptools.packages.find]
-#where = ["sequana_pipelines/"]
-#include = ["sequana_pipelines.hic"]
 
-
-[projects.scripts]
+[project.scripts]
 sequana_hic = "sequana_pipelines.hic.main:main"
 
 
