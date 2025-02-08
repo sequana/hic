@@ -44,9 +44,6 @@ packages = [
 ]
 
 
-#[tool.setuptools.packages.find]
-#where = ["sequana_pipelines"]
-
 [project.scripts]
 sequana_hic = "sequana_pipelines.hic.main:main"
 

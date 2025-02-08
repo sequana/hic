@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - dev
+  workflow_dispatch:
   pull_request:
     branches-ignore: []
   schedule:
@@ -17,7 +18,7 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        python: [3.8, '3.10']
+        python: [3.9, '3.10']
       fail-fast: false
 
 
@@ -50,6 +51,7 @@ jobs:
     - name: install package itself
       run: |
          pip install .
+         pip install "pulp==2.7.0" --no-deps
 
     - name: testing
       run: |
