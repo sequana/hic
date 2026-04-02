@@ -625,6 +625,7 @@ rule dot2svg:
 # Those rules takes a couple of seconds so no need for a cluster
 localrules:
     rulegraph,
+    dot2svg,
 
 
 onsuccess:
