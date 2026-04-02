@@ -90,6 +90,8 @@ Optional:
 - **seqkit** — split FastQ files (required for ``--aligner-choice bwa_split``)
 
 
+.. image:: https://raw.githubusercontent.com/sequana/hic/main/sequana_pipelines/hic/dag.svg
+
 Pipeline description
 ~~~~~~~~~~~~~~~~~~~~
 
