@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "sequana-hic"
-version = "0.0.1"
+version = "0.1.0"
 description = "Hi-C analysis, snakemake, sequana, container, reproducibility"
 authors = [{name="Sequana Team", email="thomas.cokelaer@pasteur.fr"}]
 license = "BSD-3"
@@ -21,19 +21,18 @@ classifiers = [
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.10,<4.0"
 dependencies = [
     "sequana >=0.17.0",
     "sequana_pipetools >=1.0.0",
-    "click-completion >=0.5.2",
     "cooler >=0.10.3",
     "pdfkit (>=1.0.0,<2.0.0)"
 ]

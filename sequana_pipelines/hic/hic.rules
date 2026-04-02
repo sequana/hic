@@ -40,7 +40,7 @@ configfile: "config.yaml"
 
 
 # A convenient manager
-manager = sm.PipelineManager("hic", config)
+manager = sm.PipelineManager("hic", config, schema="schema.yaml")
 
 # chromap does not seem to work for this HiC data set. 
 
@@ -76,9 +76,11 @@ rule copy_reference:
         config["general"]["reference_file"],
     output:
         "reference/genome.fasta",
+    log:
+        "reference/copy_reference.log",
     shell:
         """
-        cp {input} {output}
+        cp {input} {output} >{log} 2>&1
         """
 
 
@@ -97,8 +99,8 @@ rule fastqc:
         config["apptainers"]["fastqc"]
     log:
         "{sample}/fastqc/fastqc.log",
-    wrapper:
-        f"{manager.wrappers}/wrappers/fastqc"
+    shell:
+        manager.get_shell("fastqc/run", "v1")
 
 
 expected_output.extend(expand("{sample}/fastqc/fastqc.done", sample=manager.samples))
@@ -158,8 +160,8 @@ if config["general"]["mapper"] in ["bwa", "bwa_split"]:
             **config["bwa_index"]["resources"],
         container:
             config["apptainers"]["bwa"]
-        wrapper:
-            f"{manager.wrappers}/wrappers/bwa/build"
+        shell:
+            manager.get_shell("bwa/build", "v1")
 
 
 # now switch between aligners
@@ -172,30 +174,33 @@ if config["general"]["mapper"] == "bwa":
             fai="reference/genome.fasta.fai",
             reference="reference/genome.fasta",
         output:
+            sam=temp("{sample}/bwa/{sample}.sam"),
+            bam=temp("{sample}/bwa/{sample}.bam"),
             sorted="{sample}/bwa/{sample}.sorted.bam",
         log:
             "{sample}/bwa/{sample}.log",
         params:
-            options=config["bwa"]["options"] + "",
-            tmp_directory=config["bwa"]["tmp_directory"],
+            options=config["bwa"]["options"],
         threads: 2
         resources:
             **config["bwa"]["resources"],
         container:
             config["apptainers"]["bwa"]
-        wrapper:
-            f"{manager.wrappers}/wrappers/bwa/align"
+        shell:
+            manager.get_shell("bwa/align", "v2")
 
     rule sort_by_name:
         input:
             sorted=rules.bwa.output.sorted
         output:
             bam="{sample}/bwa/{sample}.sorted.byname.bam",
+        log:
+            "{sample}/bwa/{sample}.sort_by_name.log",
         container:
             config["apptainers"]["samtools"]
         shell:
             """
-            samtools sort -n {input.sorted} > {output.bam}
+            samtools sort -n {input.sorted} > {output.bam} 2>{log}
             """
 elif config["general"]["mapper"] == "bwa_split":
 
@@ -204,13 +209,15 @@ elif config["general"]["mapper"] == "bwa_split":
             manager.getrawdata(),
         output:
             directory("{sample}/split/"),
+        log:
+            "{sample}/split/split_fasta.log",
         params:
             nreads=config["bwa_split"]["nreads"],
         container:
             config["apptainers"]["seqkit"]
         shell:
             """
-            seqkit split2 --by-size {params.nreads} -O {wildcards.sample}/split -1 {input[0]} -2 {input[1]}
+            seqkit split2 --by-size {params.nreads} -O {wildcards.sample}/split -1 {input[0]} -2 {input[1]} >{log} 2>&1
             """
 
     def get_bwa_input():
@@ -230,19 +237,20 @@ elif config["general"]["mapper"] == "bwa_split":
             fai="reference/genome.fasta.fai",
             reference="reference/genome.fasta",
         output:
+            sam=temp("{sample}/split/{sample}.{splitid}.sam"),
+            bam=temp("{sample}/split/{sample}.{splitid}.bam"),
             sorted=temp("{sample}/split/{sample}.sorted.{splitid}.bam"),
         log:
             "{sample}/split/{sample}.{splitid}.log",
         params:
             options=config["bwa"]["options"],
-            tmp_directory=config["bwa"]["tmp_directory"],
         threads: 2
         resources:
             **config["bwa"]["resources"],
         container:
             config["apptainers"]["bwa"]
-        wrapper:
-            f"{manager.wrappers}/wrappers/bwa/align"
+        shell:
+            manager.get_shell("bwa/align", "v2")
 
     def aggregate_bwa(wildcards):
         checkpoint_output = checkpoints.split_fasta.get(**wildcards).output[0]
@@ -264,11 +272,13 @@ elif config["general"]["mapper"] == "bwa_split":
             aggregate_bwa,
         output:
             sorted="{sample}/bwa/{sample}.sorted.bam",
+        log:
+            "{sample}/bwa/{sample}.merge.log",
         container:
             config["apptainers"]["samtools"]
         shell:
             """
-            samtools merge {output} {input}
+            samtools merge {output} {input} >{log} 2>&1
             """
 
     rule sort_by_name:
@@ -276,11 +286,13 @@ elif config["general"]["mapper"] == "bwa_split":
             sorted=rules.bwa_merge.output.sorted
         output:
             bam="{sample}/bwa/{sample}.sorted.byname.bam",
+        log:
+            "{sample}/bwa/{sample}.sort_by_name.log",
         container:
             config["apptainers"]["samtools"]
         shell:
             """
-            samtools sort -n {input.sorted} > {output.bam}
+            samtools sort -n {input.sorted} > {output.bam} 2>{log}
             """
 
 elif config["general"]["mapper"] == "chromap":
@@ -290,13 +302,15 @@ elif config["general"]["mapper"] == "chromap":
             reference="reference/genome.fasta",
         output:
             index="reference/index",
+        log:
+            "reference/chromap_index.log",
         container:
             config["apptainers"]["chromap"]
-        threads: 
+        threads:
             config["chromap"]["threads"]
         shell:
             """
-            chromap -i -r {input.reference} -o {output.index} -t {threads}
+            chromap -i -r {input.reference} -o {output.index} -t {threads} >{log} 2>&1
             """
 
     rule chromap_align_HiC:
@@ -318,8 +332,8 @@ elif config["general"]["mapper"] == "chromap":
             "{sample}/chromap/log.txt",
         shell:
             """
-            chromap --preset hic -x {input.index} -r {input.reference} -1 {input[0]} -2 {input[1]}  --pairs -o {output.aln} -t {threads} --summary {output.summary_pairs} > {log}
-            chromap --preset hic -x {input.index} -r {input.reference} -1 {input[0]} -2 {input[1]} --SAM -o {output.sam} -t {threads} >> {log}
+            chromap --preset hic -x {input.index} -r {input.reference} -1 {input[0]} -2 {input[1]}  --pairs -o {output.aln} -t {threads} --summary {output.summary_pairs} >{log} 2>&1
+            chromap --preset hic -x {input.index} -r {input.reference} -1 {input[0]} -2 {input[1]} --SAM -o {output.sam} -t {threads} >>{log} 2>&1
             """
 
     rule sam2bam:
@@ -327,13 +341,13 @@ elif config["general"]["mapper"] == "chromap":
             sam="{sample}/chromap/{sample}.sam",
         output:
             bam="{sample}/chromap/{sample}.sorted.byname.bam",
+        log:
+            "{sample}/chromap/{sample}.sam2bam.log",
         container:
             config["apptainers"]["samtools"]
         shell:
             """
-            samtools sort -n {input.sam} > {output.bam}
-            # indexing not required for sorting by name
-            #samtools index {output.bam}
+            samtools sort -n {input.sam} > {output.bam} 2>{log}
             """
 
 def get_input_bam_files(wildcards):
@@ -351,7 +365,9 @@ rule qc3c:
     output:
         html="{sample}/qc3c/report.qc3C.html",
         json="{sample}/report.qc3C.json",
-        log="{sample}/qc3c/{sample}.log",
+        qc3c_log="{sample}/qc3c/{sample}.log",
+    log:
+        "{sample}/qc3c/{sample}.snakemake.log",
     params:
         sample_rate=0.1,  # according to the author it is enough.
         mapq=30,
@@ -361,10 +377,10 @@ rule qc3c:
         4
     shell:
         """
-        qc3C bam --enzyme DpnII --fasta {input.reference} --bam {input.bam} --output-path {wildcards.sample}/qc3c --sample-rate {params.sample_rate} -q {params.mapq} -t {threads}
+        qc3C bam --enzyme DpnII --fasta {input.reference} --bam {input.bam} --output-path {wildcards.sample}/qc3c --sample-rate {params.sample_rate} -q {params.mapq} -t {threads} >{log} 2>&1
         # for multiqc to work, json needs to be in root directory
         mv {wildcards.sample}/qc3c/report.qc3C.json {output.json}
-        mv {wildcards.sample}/qc3c/qc3C.log {output.log}
+        mv {wildcards.sample}/qc3c/qc3C.log {output.qc3c_log}
         """
 
 
@@ -376,9 +392,11 @@ rule chrom_size:
         reference="reference/genome.fasta",
     output:
         chromsize="reference/chromsize.txt",
+    log:
+        "reference/chromsize.log",
     shell:
         """
-        sequana fasta {input.reference} --to-chrom-size --output {output.chromsize}
+        sequana fasta {input.reference} --to-chrom-size --output {output.chromsize} >{log} 2>&1
         """
 
 
@@ -390,6 +408,8 @@ rule pairtools:
         chrom_size=rules.chrom_size.output.chromsize,
     output:
         sort="{sample}/pairtools/{sample}.sort.pairs",
+    log:
+        "{sample}/pairtools/{sample}.pairtools.log",
     container:
         config["apptainers"]["pairtools"]
     params:
@@ -401,10 +421,10 @@ rule pairtools:
     shell:
         """
         # pairtools parse generate 1 large file.  pairtools sort as well. Better to pipe them to get
-        # only one file. pairs number is identical of course. same content but sorted so statistics 
+        # only one file. pairs number is identical of course. same content but sorted so statistics
         # would be the same
         pairtools parse --nproc-in {threads} --nproc-out {threads} {input.bam} -c {input.chrom_size} --walks-policy {params.walk_policy} |  \
-            pairtools sort --nproc {threads} --memory {resources.mem} -o {output.sort} 
+            pairtools sort --nproc {threads} --memory {resources.mem} -o {output.sort} >{log} 2>&1
         """
 
 
@@ -413,11 +433,13 @@ rule pairtools_stats:
         data=rules.pairtools.output.sort,
     output:
         stats="{sample}/pairtools/{sample}.pairtools.sort.stats.txt",
+    log:
+        "{sample}/pairtools/{sample}.pairtools_stats.log",
     container:
         config["apptainers"]["pairtools"]
     shell:
         """
-        pairtools stats {input.data} > {output.stats}
+        pairtools stats {input.data} > {output.stats} 2>{log}
         """
 
 
@@ -427,11 +449,13 @@ rule pairtools_dedup:
     output:
         pairsam="{sample}/pairtools/{sample}.dedup.pairsam",
         stats="{sample}/pairtools/{sample}.dedup.stats",
+    log:
+        "{sample}/pairtools/{sample}.pairtools_dedup.log",
     container:
         config["apptainers"]["pairtools"]
     shell:
         """
-        pairtools dedup -o {output.pairsam} {input.data} --output-stats {output.stats}
+        pairtools dedup -o {output.pairsam} {input.data} --output-stats {output.stats} >{log} 2>&1
         """
 
 
@@ -440,11 +464,13 @@ rule pairtools_dedup_stats:
         data=rules.pairtools_dedup.output.pairsam,
     output:
         stats="{sample}/pairtools/{sample}.pairtools.dedup.stats.txt",
+    log:
+        "{sample}/pairtools/{sample}.pairtools_dedup_stats.log",
     container:
         config["apptainers"]["pairtools"]
     shell:
         """
-        pairtools stats {input.data} > {output.stats}
+        pairtools stats {input.data} > {output.stats} 2>{log}
         """
 
 
@@ -462,11 +488,13 @@ rule pairtools_split:
     output:
         pairs="{sample}/pairtools/{sample}.nodups.pairs",
         sam="{sample}/pairtools/{sample}.nodups.sam",
+    log:
+        "{sample}/pairtools/{sample}.pairtools_split.log",
     container:
         config["apptainers"]["pairtools"]
     shell:
         """
-        pairtools split {input.pairsam} --output-pairs {output.pairs} --output-sam {output.sam}
+        pairtools split {input.pairsam} --output-pairs {output.pairs} --output-sam {output.sam} >{log} 2>&1
         """
 
 
@@ -493,9 +521,9 @@ rule cooler_cload:
         # for options -c1/-p1/-c2/-p2 
         #
         mkdir -p {wildcards.sample}/cooler
-        cooler cload pairs  -c1 2 -p1 3 -c2 4 -p2 5 --assembly {input.reference} {input.chrom_size}:{params.binsize} {input.data} {output.cool} > {log}
+        cooler cload pairs  -c1 2 -p1 3 -c2 4 -p2 5 --assembly {input.reference} {input.chrom_size}:{params.binsize} {input.data} {output.cool} >{log} 2>&1
 
-        cooler zoomify --resolutions 300,400,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000,2000000,5000000  --out {output.mcool} --balance {output.cool}
+        cooler zoomify --resolutions 300,400,500,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,20000,30000,40000,50000,100000,200000,300000,400000,500000,1000000,2000000,5000000  --out {output.mcool} --balance {output.cool} >>{log} 2>&1
         """
 
 
@@ -515,10 +543,12 @@ rule hic_qc:
         bam=get_hic_qc_input
     output:
         html="{sample}/hic_qc/{sample}_qc_report.html"
+    log:
+        "{sample}/hic_qc/{sample}.log",
     shell:
         """
         # max of 1,000,000 reads
-        python .sequana/hic_qc.py -b {input.bam} --outfile_prefix {wildcards.sample}/hic_qc/{wildcards.sample} -n 1000000
+        python .sequana/hic_qc.py -b {input.bam} --outfile_prefix {wildcards.sample}/hic_qc/{wildcards.sample} -n 1000000 >{log} 2>&1
         cp .sequana/hic_qc_style.css {wildcards.sample}/hic_qc/style.css
         """
 
@@ -563,8 +593,8 @@ rule multiqc:
         **config["multiqc"]["resources"],
     container:
         config["apptainers"]["multiqc"]
-    wrapper:
-        f"{manager.wrappers}/wrappers/multiqc"
+    shell:
+        manager.get_shell("multiqc/run", "v1")
 
 
 # ========================================================== rulegraph
@@ -572,12 +602,13 @@ rule rulegraph:
     input:
         str(manager.snakefile),
     output:
-        svg="rulegraph/rulegraph.dot",
+        "rulegraph/rulegraph.dot",
     params:
-        mapper={},  #{"multiqc": "../multiqc/multiqc_report.html"},
+        mapper={},
         configname="config.yaml",
-    wrapper:
-        f"{manager.wrappers}/wrappers/rulegraph"
+        required_local_files=["schema.yaml"],
+    run:
+        manager.get_run("rulegraph/run", "v1")(input, output, params)
 
 
 rule dot2svg:
@@ -588,7 +619,7 @@ rule dot2svg:
     container:
         config["apptainers"]["graphviz"]
     shell:
-        """dot -Tsvg {input} -o {output}"""
+        manager.get_shell("graphviz/dot2svg", "v1")
 
 
 # Those rules takes a couple of seconds so no need for a cluster
@@ -598,35 +629,129 @@ localrules:
 
 onsuccess:
 
-    from sequana import logger as log
-    from sequana.modules_report.summary import SequanaReport
-
     import colorlog
+    import pandas as pd
+    from sequana.modules_report.summary import SequanaReport
+    from sequana.utils.datatables_js import DataTable
 
     log = colorlog.getLogger("sequana.hic")
     log.setLevel("INFO")
 
     manager.teardown()
-
     manager.clean_multiqc("multiqc/multiqc_report.html")
 
+    # ------------------------------------------------------------------ helpers
+    def parse_pairtools_stats(filepath):
+        """Return a dict of key->value from a pairtools stats file."""
+        stats = {}
+        try:
+            with open(filepath) as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split("\t")
+                    if len(parts) == 2:
+                        stats[parts[0]] = parts[1]
+        except FileNotFoundError:
+            pass
+        return stats
 
-    html = f"""   <h2>Overview</h2>
+    def pct(num, denom):
+        """Return percentage string or N/A."""
+        try:
+            return f"{100 * int(num) / int(denom):.1f}%"
+        except (ZeroDivisionError, ValueError, TypeError):
+            return "N/A"
 
-        <p>
-        Please have a look at the <a href="./multiqc/multiqc_report.html">multiQC</a> report to get a feeling of the Hi-C quality of the library.
-        In particular, have a look at the "BAM mode HiC-pro validation section. This plot gives you the percentage of
-        reads mapping to the same contig in the same orientation (FF or RR). For shotgun libraries, this should
-        be ~1%, but for a pure Hi-C library, it could be as high as 50%. This is a primary metric of Hi-C library
-        quality. Not that you can also use the read pairs that map on several contigs (FR and RF)
+    # ---------------------------------------------------------- per-sample data
+    samples = sorted(manager.samples.keys())
 
-        Another sanity check is the "BAM mode distribution of fragment separation" plot. It should give you the insert size of the library, which you may know from the experimentalists. You should see a bump/maximum value in your plot. 
-        </p>
-     Please explorer the directory. You should find one directory per sample. Contact matrix files are in e.g. sample/cooler/ directory together with image example (from your data). 
+    FIELDS = ["Sample", "Total pairs", "Mapped", "Unmapped", "Cis", "Trans",
+              "Cis >10kb", "Duplicates", "Hi-C QC"]
 
+    data = {f: [] for f in FIELDS}
+    data["links"] = []       # Sample column → hic_qc report
+    data["qc3c_link"] = []   # qc3c column → qc3c HTML report
 
-        """
-    s = SequanaReport(manager.getmetadata(), html)
+    for sample in samples:
+        sort_stats = parse_pairtools_stats(f"{sample}/pairtools/{sample}.pairtools.sort.stats.txt")
+        total    = sort_stats.get("total", "N/A")
+        mapped   = sort_stats.get("total_mapped", "N/A")
+        unmapped = sort_stats.get("total_unmapped", "N/A")
+        dups     = sort_stats.get("total_dups", "N/A")
+        cis      = sort_stats.get("cis", "N/A")
+        trans    = sort_stats.get("trans", "N/A")
+        cis_10kb = sort_stats.get("cis_10kb+", "N/A")
+
+        data["Sample"].append(sample)
+        data["Total pairs"].append(total)
+        data["Mapped"].append(pct(mapped, total))
+        data["Unmapped"].append(pct(unmapped, total))
+        data["Cis"].append(pct(cis, mapped))
+        data["Trans"].append(pct(trans, mapped))
+        data["Cis >10kb"].append(pct(cis_10kb, mapped))
+        data["Duplicates"].append(pct(dups, total))
+        data["Hi-C QC"].append("qc3c")
+        data["links"].append(f"{sample}/hic_qc/{sample}_qc_report.html")
+        data["qc3c_link"].append(f"{sample}/qc3c/report.qc3C.html")
+
+    # ---------------------------------------------------------- summary table
+    df = pd.DataFrame(data)
+    dt = DataTable(df, "hic_summary", index=False)
+    dt.datatable.datatable_options = {
+        "pageLength": 20,
+        "dom": "Bfrtip",
+        "buttons": ["copy", "csv"],
+    }
+    dt.datatable.set_links_to_column("links", "Sample", new_page=True)
+    dt.datatable.set_links_to_column("qc3c_link", "Hi-C QC", new_page=True)
+    js = dt.create_javascript_function()
+    html_table = dt.create_datatable(float_format="%.3f")
+
+    # ---------------------------------------------------------------- main html
+    intro = f"""
+    <h2>Hi-C Pipeline Summary</h2>
+
+    <p>
+      The table below summarises key pair statistics (from
+      <a href="https://pairtools.readthedocs.io" target="_blank">pairtools</a>) for each sample.
+      Click a <strong>Sample</strong> name to open its per-sample Hi-C QC report, or click
+      <strong>Hi-C&nbsp;QC</strong> to open the qc3C library quality report.
+      See also the <a href="multiqc/multiqc_report.html">MultiQC report</a> for aggregated
+      FastQC, pairtools, and qc3C metrics across all samples.
+    </p>
+
+    <h3>Metric guide</h3>
+    <ul>
+      <li><strong>Mapped</strong> — fraction of read pairs where both reads aligned.</li>
+      <li><strong>Cis</strong> — pairs mapping to the same chromosome (intra-chromosomal).</li>
+      <li><strong>Trans</strong> — pairs mapping to different chromosomes (inter-chromosomal).</li>
+      <li><strong>Cis &gt;10kb</strong> — cis pairs separated by more than 10 kb; the primary indicator of Hi-C library quality. Expect &gt;15% for a good library.</li>
+      <li><strong>Duplicates</strong> — PCR/optical duplicate rate; ideally &lt;40%.</li>
+    </ul>
+
+    {js}
+    {html_table}
+
+    <h2>Output files</h2>
+    <p>All results are organised per sample under the working directory:</p>
+    <ul>
+      <li><code>&lt;sample&gt;/bwa/</code> — sorted BAM files.</li>
+      <li><code>&lt;sample&gt;/pairtools/</code> — contact pairs (sorted, deduplicated), and pairtools statistics.</li>
+      <li><code>&lt;sample&gt;/cooler/</code> — multi-resolution contact matrix (<code>.mcool</code>) and a 5 kb contact matrix PNG.</li>
+      <li><code>&lt;sample&gt;/qc3c/</code> — qc3C HTML report assessing Hi-C ligation efficiency.</li>
+      <li><code>&lt;sample&gt;/hic_qc/</code> — Hi-C QC report with distance distribution histograms.</li>
+      <li><code>multiqc/multiqc_report.html</code> — aggregated QC report.</li>
+    </ul>
+    <p>
+      To visualise the contact matrices interactively, load the <code>.mcool</code> files into
+      <a href="https://higlass.io" target="_blank">HiGlass</a> or
+      <a href="https://github.com/deeptools/HiCExplorer" target="_blank">HiCExplorer</a>.
+    </p>
+    """
+
+    s = SequanaReport(manager.getmetadata(), intro)
 
     shell("chmod -R g+w .")
 

@@ -1,7 +1,10 @@
 bwa
 chromap
+cooler
+fastqc
+graphviz
+multiqc
 pairtools
 qc3c
-fastp
-fastqc
+samtools
 seqkit

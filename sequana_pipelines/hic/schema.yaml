@@ -15,6 +15,9 @@ mapping:
     "input_pattern":
         type: str
         required: True
+    "exclude_pattern":
+        type: str
+        required: False
     "general":
         type: map
         mapping:
