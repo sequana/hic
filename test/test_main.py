@@ -9,7 +9,7 @@ from sequana_pipelines.hic.main import main
 from . import test_dir
 
 sharedir = f"{test_dir}/data"
-reference = f"{sharedir}/Ld1S_chr1.fa"
+reference = f"{sharedir}/chr1.fa"
 
 
 def test_standalone_script(tmp_path):
