@@ -1,0 +1,20 @@
+name: hic
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - bwa
+  - samtools
+  - pairtools
+  - cooler
+  - qc3c
+  - fastqc
+  - multiqc
+  - graphviz
+  - seqkit
+  - pip:
+    - sequana>=0.17
+    - sequana_pipetools>=1.0.0

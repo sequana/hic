@@ -1,4 +1,3 @@
-
 name: Tests
 
 on:
@@ -18,9 +17,8 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        python: [3.9, '3.10', '3.11']
+        python: ['3.10', '3.11', '3.12']
       fail-fast: false
-
 
     steps:
 
@@ -29,42 +27,25 @@ jobs:
         sudo apt-get install -y graphviz
 
     - name: checkout git repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: conda/mamba
-      uses: mamba-org/setup-micromamba@v1
+    - name: set up python ${{ matrix.python }}
+      uses: actions/setup-python@v5
       with:
-          cache-downloads: true
-          #environment-file: false
-          environment-name: installation
-          channels:
-            conda-forge,bioconda,defaults
-          create-args: >-
-            python=${{ matrix.python }}
-            bwa
-          condarc: |
-            channels:
-              - conda-forge
-              - bioconda
-            channel_priority: strict
+        python-version: ${{ matrix.python }}
 
-    - name: install package itself
-      shell: bash -l {0}
+    - name: install package and dependencies
       run: |
-        pip install poetry
-        poetry install --with dev
-       
+        pip install .
+        pip install coveralls pytest-cov pytest pytest-xdist
+
     - name: testing
-      shell: bash -l {0}
       run: |
-        poetry run pytest --cov-report term-missing --cov=sequana
+        pytest -v --cov-report term-missing --cov=sequana_pipelines.hic
 
     - name: coveralls
-      shell: bash -l {0}
+      continue-on-error: true
       run: |
-        pip install coveralls
         coveralls --service=github
       env:
           GITHUB_TOKEN: ${{ github.token }}
-
-

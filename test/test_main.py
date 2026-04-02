@@ -1,23 +1,60 @@
 import os
 import subprocess
-import sys
+import tempfile
 
-import sequana_pipelines.hic.main as m
+from click.testing import CliRunner
+
+from sequana_pipelines.hic.main import main
+
 from . import test_dir
 
-def test_standalone_subprocess(tmpdir):
-    input_dir = os.sep.join((test_dir, 'resources'))
-    cmd = ["test", "--input-directory", input_dir, "--working-directory", str(tmpdir), "--force"]
-    subprocess.call(cmd)
+sharedir = f"{test_dir}/data"
+reference = f"{sharedir}/Ld1S_chr1.fa"
 
 
-def _test_standalone_script(tmpdir):
-    input_dir = os.sep.join((test_dir, 'resources'))
-    sys.argv = ["test", "--input-directory", input_dir, "--working-directory", str(tmpdir), "--force"]
-    m.main()
+def test_standalone_script(tmp_path):
+    runner = CliRunner()
+    results = runner.invoke(
+        main,
+        [
+            "--input-directory",
+            sharedir,
+            "--reference-file",
+            reference,
+            "--working-directory",
+            str(tmp_path / "wk"),
+            "--force",
+        ],
+    )
+    assert results.exit_code == 0
+
+
+def test_standalone_script_bwa_split(tmp_path):
+    runner = CliRunner()
+    results = runner.invoke(
+        main,
+        [
+            "--input-directory",
+            sharedir,
+            "--reference-file",
+            reference,
+            "--working-directory",
+            str(tmp_path / "wk"),
+            "--force",
+            "--aligner-choice",
+            "bwa_split",
+        ],
+    )
+    assert results.exit_code == 0
 
 
 def test_version():
-    cmd = ["sequana_hic", "--version"]
-    subprocess.call(cmd)
+    runner = CliRunner()
+    results = runner.invoke(main, ["--version"])
+    assert results.exit_code == 0
 
+
+def test_help():
+    runner = CliRunner()
+    results = runner.invoke(main, ["--help"])
+    assert results.exit_code == 0

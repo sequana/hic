@@ -13,10 +13,6 @@
 import os
 
 import rich_click as click
-import click_completion
-
-click_completion.init()
-
 
 from sequana_pipetools.options import *
 from sequana_pipetools import SequanaManager
@@ -75,11 +71,11 @@ def main(**options):
 
     # seems to be a hardcoded values in bwa according to the documentation
     if N >= 2000000000:
-        cfg["bwa"]["index_algorithm"] = "bwtsw"
-        cfg["bwa_split"]["index_algorithm"] = "bwtsw"
+        cfg.bwa.index_algorithm = "bwtsw"
+        cfg.bwa_split.index_algorithm = "bwtsw"
     else:
-        cfg["bwa"]["index_algorithm"] = "is"
-        cfg["bwa_split"]["index_algorithm"] = "is"
+        cfg.bwa.index_algorithm = "is"
+        cfg.bwa_split.index_algorithm = "is"
 
     # finalise the command and save it; copy the snakemake. update the config
     # file and save it.
