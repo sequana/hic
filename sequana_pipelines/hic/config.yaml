@@ -52,7 +52,7 @@ general:
 
 
 apptainers:
-    bwa: https://zenodo.org/record/7341710/files/sequana_tools_0.14.5.img
+    bwa: https://zenodo.org/record/18257162/files/sequana_tools_26.1.14.img
     graphviz: https://zenodo.org/record/7928262/files/graphviz_7.0.5.img
     multiqc: https://zenodo.org/record/17100751/files/multiqc_1.27.0-zenodo1.img
     samtools: https://zenodo.org/record/7437898/files/samtools_1.16.1.img
@@ -61,7 +61,7 @@ apptainers:
     qc3c: https://zenodo.org/record/14746667/files/qc3c_0.5.0.img
     fastqc: "https://zenodo.org/record/7015004/files/fastqc_0.11.9-py3.img"
     seqkit: https://zenodo.org/record/7821924/files/seqkit_2.4.0.img
-    fastp: "https://zenodo.org/record/7319782/files/fastp_0.23.2.img"
+    fastp: "https://zenodo.org/record/17097941/files/fastp_1.0.1.img"
 
 
 #############################################################################
@@ -85,6 +85,7 @@ apptainers:
 # Other useful options: --disable_adapter_trimming and --disable_quality_filtering.
 # or -n 5 (minimum number of Ns required to discard a read)
 fastp:
+    do: false
     options: ' --cut_tail '
     minimum_length: 20
     adapters: ''

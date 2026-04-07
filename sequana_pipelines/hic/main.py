@@ -23,7 +23,8 @@ NAME = "hic"
 help = init_click(NAME, groups={
     "Pipeline Specific": [
         "--aligner-choice",
-        "--reference-file"
+        "--reference-file",
+        "--enable-fastp"
        ],
         }
 )
@@ -42,6 +43,7 @@ aligns the reads with bwa and merge back the sub BAM files. Should be equivalent
 cluster to speed up analysis.""",
 )
 @click.option("--reference-file", required=True, help="You input reference file in fasta format")
+@click.option("--enable-fastp", is_flag=True, default=False, help="Enable fastp quality trimming before alignment (disabled by default)")
 def main(**options):
 
 
@@ -61,6 +63,7 @@ def main(**options):
 
     cfg.general.mapper = options.mapper
     cfg.general.reference_file = os.path.abspath(options.reference_file)
+    cfg.fastp.do = options.enable_fastp
     manager.exists(cfg.general.reference_file)
 
     # Given the reference, let us compute its length and the index algorithm

@@ -105,7 +105,9 @@ rule fastqc:
 
 expected_output.extend(expand("{sample}/fastqc/fastqc.done", sample=manager.samples))
 
-if 1 == 0:
+
+# Fastp quality trimming (optional, disabled by default)
+if config["fastp"].get("do", False):
     __clean_fastq__output = ["{sample}/fastp/{sample}_R1_.fastp.fastq.gz"]
     if manager.paired:
         __clean_fastq__output += ["{sample}/fastp/{sample}_R2_.fastp.fastq.gz"]
@@ -130,15 +132,15 @@ if 1 == 0:
         log:
             "logs/fastp/{sample}.log",
         params:
-            options=config["fastp"]["options"],
+            options=options_fastp,
             adapters=config["fastp"]["adapters"],
         threads: config["fastp"].get("threads", 4)
         resources:
             **config["fastp"]["resources"],
         container:
             config["apptainers"]["fastp"]
-        wrapper:
-            f"{manager.wrappers}/wrappers/fastp"
+        shell:
+            manager.get_shell("fastp/run", "v1")
 
 
 if config["general"]["mapper"] in ["bwa", "bwa_split"]:
@@ -415,16 +417,17 @@ rule pairtools:
     params:
         # walk_policy could be mask, 5any, 5unique, 3any|3unique|all
         walk_policy=config["pairtools"]["walk_policy"],
+        mem=config["pairtools"]["resources"]["mem"],
     threads: config["pairtools"]["threads"]
     resources:
-        mem=config["pairtools"]["resources"]["mem"],
+        **config["pairtools"]["resources"],
     shell:
         """
         # pairtools parse generate 1 large file.  pairtools sort as well. Better to pipe them to get
         # only one file. pairs number is identical of course. same content but sorted so statistics
         # would be the same
         pairtools parse --nproc-in {threads} --nproc-out {threads} {input.bam} -c {input.chrom_size} --walks-policy {params.walk_policy} |  \
-            pairtools sort --nproc {threads} --memory {resources.mem} -o {output.sort} >{log} 2>&1
+            pairtools sort --nproc {threads} --memory {params.mem} -o {output.sort} >{log} 2>&1
         """
 
 

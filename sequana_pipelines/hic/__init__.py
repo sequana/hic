@@ -1,12 +1,3 @@
-import importlib.metadata as metadata
+import importlib.metadata
 
-
-def get_package_version(package_name):
-    try:
-        version = metadata.version(package_name)
-        return version
-    except metadata.PackageNotFoundError:
-        return f"{package_name} not found"
-
-
-version = get_package_version("sequana-hic")
+version = importlib.metadata.version("sequana-hic")
