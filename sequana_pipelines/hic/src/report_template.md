@@ -1,4 +1,4 @@
-<center>
+<center markdown="1">
 
 # Hi-C Library QC Report
 
@@ -19,7 +19,7 @@
 | Same strand high-quality* (HQ) read pairs (RPs)          | {same_strand_hq_html}    | > {same_strand_threshold}%   |
 | Informative RPs**   | {informative_read_pairs_html}      | > {informative_read_pairs_threshold}%                   |
 
-<div class="small center">
+<div class="small center" markdown="1">
 <br />
 *High-quality (HQ) read pairs have minimum mapping quality >= 20, maximum edit distance <= 5, and are not duplicates.<br>
 **Informative read pairs are read pairs which have MAPQ > 0, are not PCR duplicates, and map to different contigs or >10kb apart.
@@ -34,7 +34,7 @@
 | Fraction of HQ RPs Intercontig (CTGs >10kb)**    | {intercontig_hq_contacts_html}       | > {intercontig_hq_contacts_threshold}%                                   |
 | Informative HQ RPs per-contig per-1M-RPs (CTGs >5kb)***         | {usable_hq_gt_5k_per_million_html}          | > {min_usable_reads_per_contig_per_million_threshold}                               |
 
-<div class="small center">
+<div class="small center" markdown="1">
 <br />
 *The proportion of <em>read pairs that span at least 10kb</em>, out of all read pairs that map (a) with high-quality, (b) to the same contig, (c) where that contig is at least 10kb long.<br>
 **The proportion of <em>read pairs mapping to two different contigs each greater than 10kb</em>, out of all read pairs that map with high-quality.<br>
@@ -51,7 +51,7 @@
 | Zero MAPQ reads      | {many_zero_mapq_reads_html}             | <= {many_zero_mapq_threshold}%                                        |
 | Unmapped reads         | {many_unmapped_reads_html}          | <= {many_unmapped_threshold}%                               |
 
-<div class="small center">
+<div class="small center" markdown="1">
 <br />
 *Note that the sum of informative and noninformative read pairs is not 100% because read pairs with mapping distance between 1b and 10kb are not classified as either informative or noninformative.<br>
 Because noninformative reads can belong to more than one category, these numbers may sum to a value larger than the overall noninformative read pair amount at the top of the report.<br>
@@ -76,7 +76,7 @@ Because noninformative reads can belong to more than one category, these numbers
 
 ## Extended Library Statistics
 
-<center>
+<center markdown="1">
 
 | Label                                                    | Library statistics             | Expected values                               |
 | :-----------                                             | --------------------:| --------------------:|
@@ -94,7 +94,7 @@ Because noninformative reads can belong to more than one category, these numbers
 | Restriction Enzyme(s)                                    | {lib_enzyme}                   | N/A
 </center>
 
-<div class="small center">
+<div class="small center" markdown="1">
 <br />
 *The average number of usable high-quality read pairs per contig, for contigs greater than 5kb. Read pairs are "usable" if they map (a) with high-quality, (b) to different contigs, (c) where each of those contigs are greater than 5kb and (d) both mappings are high-quality.<br>
 </div>
