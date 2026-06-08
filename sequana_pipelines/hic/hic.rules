@@ -40,7 +40,7 @@ configfile: "config.yaml"
 
 
 # A convenient manager
-manager = sm.PipelineManager("hic", config, schema="schema.yaml")
+manager = sm.PipelineManager("hic", config)
 
 # chromap does not seem to work for this HiC data set. 
 
@@ -53,6 +53,7 @@ if config["general"]["mapper"] == "chromap":
     rule pipeline:
         input:
             expand("{sample}/chromap/{sample}.aln.pairs", sample=manager.samples),
+            expand("{sample}/qc3c/report.qc3C.html", sample=manager.samples),
             "multiqc/multiqc_report.html",
             ".sequana/rulegraph.svg",
             expand("{sample}/cooler/{sample}.contact.5000.png", sample=manager.samples),
@@ -62,6 +63,7 @@ else:
 
     rule pipeline:
         input:  #expand("{sample}/bwa/{sample}.sorted.bam", sample=manager.samples),
+            expand("{sample}/qc3c/report.qc3C.html", sample=manager.samples),
             "multiqc/multiqc_report.html",
             ".sequana/rulegraph.svg",
             expand("{sample}/cooler/{sample}.contact.5000.png", sample=manager.samples),
@@ -216,10 +218,13 @@ elif config["general"]["mapper"] == "bwa_split":
         params:
             nreads=config["bwa_split"]["nreads"],
         container:
-            config["apptainers"]["seqkit"]
+            config["apptainers"]["split_fasta"]
         shell:
             """
-            seqkit split2 --by-size {params.nreads} -O {wildcards.sample}/split -1 {input[0]} -2 {input[1]} >{log} 2>&1
+            # seqkit split2 (32-bit binary) crashes on large inputs; use sequana fastq-split instead
+            mkdir -p {wildcards.sample}/split
+            sequana fastq-split {input[0]} --by-size {params.nreads} --gzip --pattern {wildcards.sample}/split/{wildcards.sample}_R1.#.fastq.gz > {log} 2>&1
+            sequana fastq-split {input[1]} --by-size {params.nreads} --gzip --pattern {wildcards.sample}/split/{wildcards.sample}_R2.#.fastq.gz >> {log} 2>&1
             """
 
     def get_bwa_input():
