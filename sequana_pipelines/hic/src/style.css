@@ -50,6 +50,22 @@ block_img {
   clear: left;
 }
 
+table {
+  border-collapse: collapse;
+  margin: 12px auto;
+  font-size: 13px;
+}
+
+th, td {
+  border: 1px solid #cccccc;
+  padding: 4px 10px;
+}
+
+th {
+  background-color: #34495e;
+  color: white;
+}
+
 tr:nth-child(even) {
     background-color: #DDDDDD;
 }

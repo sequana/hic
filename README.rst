@@ -19,7 +19,7 @@ This is the **Hi-C** pipeline from the `Sequana <https://sequana.readthedocs.org
 :Overview: Hi-C pipeline to capture 3D chromatin interactions in a genome
 :Input: Paired FastQ files and a reference genome in FASTA format
 :Output: Cooler contact matrices, Hi-C QC reports, and a MultiQC summary
-:Status: Beta
+:Status: Production
 :Citation: Cokelaer et al, (2017), 'Sequana': a Set of Snakemake NGS pipelines, Journal of Open Source Software, 2(16), 352, JOSS DOI https://doi:10.21105/joss.00352
 
 
@@ -111,6 +111,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.2.0     Production release.
 0.1.0     Migration to modern sequana_pipetools framework (get_shell/get_run,
           schema validation, apptainer support, Python 3.10+).
 0.0.1     **First release.**

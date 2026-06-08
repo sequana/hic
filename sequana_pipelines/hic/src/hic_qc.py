@@ -1067,7 +1067,7 @@ class HiCQC(object):
             sub_str = template_string.format(**self.out_stats)  # splat the statistics and path into the markdown, render as html
 
             html = """<html><head><link rel="stylesheet" href="style.css"></head><body>""" 
-            html += md.markdown(sub_str, extensions=['markdown.extensions.tables', 'markdown.extensions.nl2br'])
+            html += md.markdown(sub_str, extensions=['markdown.extensions.tables', 'markdown.extensions.nl2br', 'md_in_html'])
 
             html += "</body></html>"
             # write out just html
