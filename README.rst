@@ -111,6 +111,9 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.2.1     Expose pairtools ``min_mapq`` in config/schema and pass ``--min-mapq``
+          to pairtools parse; switch bwa_split options to ``-5SP`` for Hi-C;
+          raise pairtools memory to 8G.
 0.2.0     Production release.
 0.1.0     Migration to modern sequana_pipetools framework (get_shell/get_run,
           schema validation, apptainer support, Python 3.10+).

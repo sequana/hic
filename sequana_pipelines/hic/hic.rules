@@ -422,6 +422,7 @@ rule pairtools:
     params:
         # walk_policy could be mask, 5any, 5unique, 3any|3unique|all
         walk_policy=config["pairtools"]["walk_policy"],
+        min_mapq=config["pairtools"].get("min_mapq", 1),
         mem=config["pairtools"]["resources"]["mem"],
     threads: config["pairtools"]["threads"]
     resources:
@@ -431,7 +432,7 @@ rule pairtools:
         # pairtools parse generate 1 large file.  pairtools sort as well. Better to pipe them to get
         # only one file. pairs number is identical of course. same content but sorted so statistics
         # would be the same
-        pairtools parse --nproc-in {threads} --nproc-out {threads} {input.bam} -c {input.chrom_size} --walks-policy {params.walk_policy} |  \
+        pairtools parse --nproc-in {threads} --nproc-out {threads} {input.bam} -c {input.chrom_size} --walks-policy {params.walk_policy} --min-mapq {params.min_mapq} |  \
             pairtools sort --nproc {threads} --memory {params.mem} -o {output.sort} >{log} 2>&1
         """
 

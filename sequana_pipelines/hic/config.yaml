@@ -97,11 +97,16 @@ fastp:
         mem: 8G
 
 
+# 5any vs 5unique: takes 5'-most alignment regardless of uniqueness → repeat reads survive
 pairtools:
     walk_policy: "5unique"
+    # Minimum MAPQ to keep an alignment in pairtools parse (default pairtools value is 1).
+    # Set to 0 to keep multi-mapped reads (BWA assigns MAPQ 0 to multimappers), so they
+    # appear in the Hi-C contact map.
+    min_mapq: 1
     threads: 4
     resources:
-        mem: 4G
+        mem: 8G
 
 
 #############################################################################
@@ -134,7 +139,7 @@ bwa:
 bwa_split:
     nreads: 100000
     index_algorithm: is
-    options: -5SP -M
+    options: -5SP
     threads: 4
     tmp_directory: ./tmp
     resources:

@@ -163,6 +163,9 @@ mapping:
                 type: str
                 required: True
                 enum: ["mask", "5any", "5unique", "3any", "3unique", "all"]
+            "min_mapq":
+                type: int
+                required: False
             "threads":
                 type: int
                 required: True
